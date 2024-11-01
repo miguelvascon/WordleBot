@@ -1,34 +1,34 @@
-import json
-from database import create_connection, init_db, insert_game, insert_guess, get_feedback, get_guess, update_game
+from database import create_connection, init_db, insert_game, insert_guess, get_feedback, get_guess, update_feedback, update_game
 
 def test_database():
-    # Create a connection to the database
-    conn = create_connection("db/wordle_game.db")
-    init_db(conn, "db/schema.sql")
+    # Create a connection to the test database
+    conn = create_connection("db/wordle_test.db")
+    init_db(conn, "db/test_schema.sql")  # Initialize with the test schema
 
-    # Insert a new game with a date
+    # Insert a new game and get its ID
     game_id = insert_game(conn, "2024-11-01")
     print(f"Inserted Game ID: {game_id}")
 
-    # Insert a guess with feedback as a list of tuples
-    guess = "CRANE"
-    feedback = [('C', 'correct'), ('R', 'incorrect'), ('A', 'misplaced'), ('N', 'incorrect'), ('E', 'misplaced')]
-    feedback_str = json.dumps(feedback)
+    # Start with the first guess and set guess_number
+    guess_number = insert_guess(conn, game_id, "crane")  # Default to guess_number=1
+    print(f"Inserted Guess Number {guess_number} with Guess: 'crane'")
 
-    guess_id = insert_guess(conn, game_id, guess, feedback_str)
-    print(f"Inserted Guess ID: {guess_id} with Guess: {guess} and Feedback: {feedback}")
+    # Mock feedback to update for the first guess
+    feedback = [('c', 'correct'), ('r', 'incorrect'), ('a', 'misplaced'), ('n', 'incorrect'), ('e', 'misplaced')]
+    update_feedback(conn, game_id, guess_number, feedback)
+    print(f"Updated feedback for Guess Number {guess_number}: {feedback}")
 
-    # Retrieve the most recent guess
-    recent_guess = get_guess(conn, game_id)
+    # Retrieve and print the most recent guess
+    recent_guess = get_guess(conn, game_id, guess_number)
     print(f"Most Recent Guess: {recent_guess}")
 
-    # Retrieve and parse feedback for the most recent guess
-    retrieved_feedback = get_feedback(conn, guess_id)
-    print(f"Retrieved Feedback: {retrieved_feedback}")
+    # Retrieve and print the feedback for the most recent guess
+    retrieved_feedback = get_feedback(conn, game_id, guess_number)
+    print(f"Retrieved Feedback for Guess Number {guess_number}: {retrieved_feedback}")
 
-    # Update game result
-    update_game(conn, game_id, "Success")
-    print(f"Updated Game ID {game_id} with Result: Success")
+    # Update the game result after all guesses
+    update_game(conn, game_id, True)
+    print(f"Updated Game ID {game_id} with Result: True")
 
     # Verify the update by checking the Game table directly
     cur = conn.cursor()
@@ -36,6 +36,7 @@ def test_database():
     game_data = cur.fetchone()
     print(f"Game Data after Update: {game_data}")
 
+    # Close the connection
     conn.close()
 
 if __name__ == "__main__":
